@@ -156,6 +156,9 @@ s32 Update(struct bundlemeta_t *meta, struct bundlevals_t *vals)
 	vals->uTick++;
 	vals->uTime = SDL_GetTicks() / 1000.0f;
 
+	vals->uWin_w = vals->uWin_w ? vals->uWin_w : SCREEN_WIDTH;
+	vals->uWin_h = vals->uWin_h ? vals->uWin_h : SCREEN_HEIGHT;
+
 	// set the viewport
 	glViewport(0, 0, vals->uWin_w, vals->uWin_h);
 
@@ -204,7 +207,6 @@ s32 Render(struct bundlemeta_t *meta, struct bundlevals_t *vals)
 s32 Shader_Setup(struct bundlemeta_t *meta, struct bundlevals_t *vals)
 {
 	char *vsrc, *fsrc;
-	s32 w, h;
 
 	// NOTE (brian)
 	//   maintains the shader programs, both vertex and fragmentation
@@ -212,31 +214,16 @@ s32 Shader_Setup(struct bundlemeta_t *meta, struct bundlevals_t *vals)
 	assert(meta);
 	assert(vals);
 
+	vsrc = "#version 330\nlayout (location = 0) in vec2 vPos; void main() { gl_Position = vec4(vPos, 0.0, 1.0); }";
+
 	glDeleteBuffers(1, &meta->vbo);
 	glDeleteBuffers(1, &meta->vao);
 
 	glDeleteProgram(meta->prog);
 
-	// TODO (brian) we probably just want an actual function to reset, not just memsetting
-	// everything to zero. it'd make this easier, maybe
-	vsrc = meta->fsrc_path;
-	fsrc = sys_readfile(meta->fsrc_path);
-	w = vals->uWin_w ? vals->uWin_w : SCREEN_WIDTH;
-	h = vals->uWin_h ? vals->uWin_h : SCREEN_HEIGHT;
-
-	memset(meta, 0, sizeof(*meta));
-	memset(vals, 0, sizeof(*vals));
-
 	Shader_Defaults(meta, vals);
 
-	meta->fsrc_path = vsrc;
-	meta->run = 1;
-
-	vsrc = "#version 330\nlayout (location = 0) in vec2 vPos; void main() { gl_Position = vec4(vPos, 0.0, 1.0); }";
-
-	// make sure we set defaults / constants
-	vals->uWin_w = w;
-	vals->uWin_h = h;
+	fsrc = sys_readfile(meta->fsrc_path);
 
 	meta->prog = Shader_Compile(vsrc, fsrc);
 
